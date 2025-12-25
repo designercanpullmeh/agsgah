@@ -6,7 +6,7 @@ import requests
 import json
 import random
 from flask import Flask, jsonify
-from instagrapi import Client  # direct_send, direct_thread, etc. [web:1]
+from instagrapi import Client  # direct_send, direct_thread, etc. [web:5]
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,12 +17,22 @@ SESSION_ID_2 = os.getenv("SESSION_ID_2")
 SESSION_ID_3 = os.getenv("SESSION_ID_3")
 SESSION_ID_4 = os.getenv("SESSION_ID_4")
 SESSION_ID_5 = os.getenv("SESSION_ID_5")
+SESSION_ID_6 = os.getenv("SESSION_ID_6")
+SESSION_ID_7 = os.getenv("SESSION_ID_7")
+SESSION_ID_8 = os.getenv("SESSION_ID_8")
+SESSION_ID_9 = os.getenv("SESSION_ID_9")
+SESSION_ID_10 = os.getenv("SESSION_ID_10")
 
 ACC1_GROUP_IDS_RAW = os.getenv("ACC1_GROUP_IDS", "")
 ACC2_GROUP_IDS_RAW = os.getenv("ACC2_GROUP_IDS", "")
 ACC3_GROUP_IDS_RAW = os.getenv("ACC3_GROUP_IDS", "")
 ACC4_GROUP_IDS_RAW = os.getenv("ACC4_GROUP_IDS", "")
 ACC5_GROUP_IDS_RAW = os.getenv("ACC5_GROUP_IDS", "")
+ACC6_GROUP_IDS_RAW = os.getenv("ACC6_GROUP_IDS", "")
+ACC7_GROUP_IDS_RAW = os.getenv("ACC7_GROUP_IDS", "")
+ACC8_GROUP_IDS_RAW = os.getenv("ACC8_GROUP_IDS", "")
+ACC9_GROUP_IDS_RAW = os.getenv("ACC9_GROUP_IDS", "")
+ACC10_GROUP_IDS_RAW = os.getenv("ACC10_GROUP_IDS", "")
 
 MESSAGE_TEXT = os.getenv("MESSAGE_TEXT", "Hello 👋")
 SELF_URL = os.getenv("SELF_URL", "")
@@ -49,6 +59,11 @@ session_logs = {
     "acc3": [],
     "acc4": [],
     "acc5": [],
+    "acc6": [],
+    "acc7": [],
+    "acc8": [],
+    "acc9": [],
+    "acc10": [],
     "system": []
 }
 logs_lock = threading.Lock()
@@ -63,7 +78,6 @@ def _push_log(session, msg):
             session_logs[session].pop(0)
 
 
-# --------- Logging helper ----------
 def log(msg, session="system"):
     line = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
     print(line, flush=True)
@@ -100,6 +114,11 @@ def status():
         acc3_logs = session_logs["acc3"][-80:]
         acc4_logs = session_logs["acc4"][-80:]
         acc5_logs = session_logs["acc5"][-80:]
+        acc6_logs = session_logs["acc6"][-80:]
+        acc7_logs = session_logs["acc7"][-80:]
+        acc8_logs = session_logs["acc8"][-80:]
+        acc9_logs = session_logs["acc9"][-80:]
+        acc10_logs = session_logs["acc10"][-80:]
         system_last = session_logs["system"][-5:]
 
     return jsonify({
@@ -109,6 +128,11 @@ def status():
         "acc3": summarize(acc3_logs),
         "acc4": summarize(acc4_logs),
         "acc5": summarize(acc5_logs),
+        "acc6": summarize(acc6_logs),
+        "acc7": summarize(acc7_logs),
+        "acc8": summarize(acc8_logs),
+        "acc9": summarize(acc9_logs),
+        "acc10": summarize(acc10_logs),
         "system_last": system_last
     })
 
@@ -129,7 +153,7 @@ def login_session(session_id, name_hint=""):
     session_id = decode_session(session_id)
     try:
         cl = Client()
-        cl.login_by_sessionid(session_id)  # session login [web:46]
+        cl.login_by_sessionid(session_id)  # session login [web:3]
         uname = getattr(cl, "username", None) or name_hint or "unknown"
         log(f"✅ Logged in {uname}", session=name_hint or "system")
         return cl
@@ -144,7 +168,7 @@ def safe_send_message(cl, gid, msg, acc_name):
         log(f"⚠ Client is None for send -> {gid}", session=acc_name)
         return False
     try:
-        cl.direct_send(msg, thread_ids=[int(gid)])  # [web:1]
+        cl.direct_send(msg, thread_ids=[int(gid)])  # [web:5]
         log(f"✅ {getattr(cl,'username','?')} sent to {gid}", session=acc_name)
         return True
     except Exception as e:
@@ -164,7 +188,7 @@ def safe_change_title_direct(cl, gid, new_title, acc_name):
 
     # step 1: high-level direct thread
     try:
-        tt = cl.direct_thread(int(gid))  # [web:1][web:59]
+        tt = cl.direct_thread(int(gid))  # [web:5]
         try:
             tt.update_title(new_title)
             log(
@@ -224,10 +248,6 @@ def safe_change_title_direct(cl, gid, new_title, acc_name):
 
 # --------- Loops ----------
 def spam_loop_single_account(cl, groups, acc_name):
-    """
-    For this account only:
-    - cycle its own groups list in order with delays and BURST_COUNT.
-    """
     if not groups:
         log("⚠ No groups for messaging loop.", session=acc_name)
         return
@@ -250,10 +270,6 @@ def spam_loop_single_account(cl, groups, acc_name):
 
 
 def title_loop_single_account(cl, groups, titles_map, acc_name):
-    """
-    For this account only:
-    - rotate titles per GC using titles_map[gid] list.
-    """
     if not groups:
         log("⚠ No groups for title loop.", session=acc_name)
         return
@@ -305,17 +321,23 @@ def start_bot():
     log(
         f"STARTUP: SESSION_ID_1={repr(SESSION_ID_1)}, SESSION_ID_2={repr(SESSION_ID_2)}, "
         f"SESSION_ID_3={repr(SESSION_ID_3)}, SESSION_ID_4={repr(SESSION_ID_4)}, SESSION_ID_5={repr(SESSION_ID_5)}, "
+        f"SESSION_ID_6={repr(SESSION_ID_6)}, SESSION_ID_7={repr(SESSION_ID_7)}, SESSION_ID_8={repr(SESSION_ID_8)}, "
+        f"SESSION_ID_9={repr(SESSION_ID_9)}, SESSION_ID_10={repr(SESSION_ID_10)}, "
         f"MESSAGE_TEXT={repr(MESSAGE_TEXT)}",
         session="system"
     )
 
-    # per-account groups
     acc_groups = {
         "acc1": parse_group_ids(ACC1_GROUP_IDS_RAW),
         "acc2": parse_group_ids(ACC2_GROUP_IDS_RAW),
         "acc3": parse_group_ids(ACC3_GROUP_IDS_RAW),
         "acc4": parse_group_ids(ACC4_GROUP_IDS_RAW),
         "acc5": parse_group_ids(ACC5_GROUP_IDS_RAW),
+        "acc6": parse_group_ids(ACC6_GROUP_IDS_RAW),
+        "acc7": parse_group_ids(ACC7_GROUP_IDS_RAW),
+        "acc8": parse_group_ids(ACC8_GROUP_IDS_RAW),
+        "acc9": parse_group_ids(ACC9_GROUP_IDS_RAW),
+        "acc10": parse_group_ids(ACC10_GROUP_IDS_RAW),
     }
 
     # build titles_map per GC using TITLES_POOL, randomized order per GC
@@ -331,7 +353,6 @@ def start_bot():
     if not base_titles:
         base_titles = [MESSAGE_TEXT[:40]]
 
-    # collect all GCs from all accounts
     all_group_ids = set()
     for g_list in acc_groups.values():
         all_group_ids.update(g_list)
@@ -341,13 +362,17 @@ def start_bot():
         random.shuffle(titles_copy)
         titles_map[str(gid)] = titles_copy
 
-    # login accounts
     sessions = {
         "acc1": SESSION_ID_1,
         "acc2": SESSION_ID_2,
         "acc3": SESSION_ID_3,
         "acc4": SESSION_ID_4,
         "acc5": SESSION_ID_5,
+        "acc6": SESSION_ID_6,
+        "acc7": SESSION_ID_7,
+        "acc8": SESSION_ID_8,
+        "acc9": SESSION_ID_9,
+        "acc10": SESSION_ID_10,
     }
 
     clients = {}
@@ -366,7 +391,6 @@ def start_bot():
         log("❌ No accounts logged in; aborting start", session="system")
         return
 
-    # start loops per logged-in account
     for acc_name, cl in clients.items():
         groups = acc_groups.get(acc_name, [])
         if not groups:
@@ -392,7 +416,6 @@ def start_bot():
         except Exception as e:
             log(f"❌ Failed to start threads for {acc_name}: {e}", session="system")
 
-    # self-ping
     try:
         t3 = threading.Thread(target=self_ping_loop, daemon=True)
         t3.start()
@@ -400,7 +423,6 @@ def start_bot():
         log(f"⚠ Failed to start self-ping thread: {e}", session="system")
 
 
-# -------------------------------------------------
 def run_bot_once():
     try:
         threading.Thread(target=start_bot, daemon=True).start()
@@ -409,7 +431,6 @@ def run_bot_once():
 
 
 run_bot_once()
-# -------------------------------------------------
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "10000"))
